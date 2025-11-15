@@ -19,7 +19,7 @@ const { COLLECTOR_URL, SERVER_ID, API_KEY } = config;
 
 if (!COLLECTOR_URL || !SERVER_ID || !API_KEY) {
   console.error('Erreur: config.json est incomplet. Relancez "bash install.sh".');
-  process.exit(1);
+  process.exit(1D);
 }
 
 const POST_URL = `${COLLECTOR_URL}/${SERVER_ID}`;
@@ -44,26 +44,41 @@ async function collectAndSendMetrics() {
   console.log(`[${new Date().toISOString()}] Collecte des métriques...`);
 
   try {
-    const [cpuData, memData, fsData, netData] = await Promise.all([
+    // --- MODIFICATION 1 : Séparer les appels ---
+    // 1. Collecter CPU, RAM, Disque
+    const [cpuData, memData, fsData] = await Promise.all([
       si.currentLoad(),
       si.mem(),
-      si.fsSize(),
-      si.networkStats('default')
+      si.fsSize()
     ]);
+
+    // 2. Trouver dynamiquement l'interface réseau par défaut
+    // (Ceci trouve le nom, ex: 'eth0' ou 'ens18')
+    const defaultIfaceName = await si.networkInterfaceDefault();
+    console.log(`[${new Date().toISOString()}] Interface réseau détectée: ${defaultIfaceName}`);
+
+    // 3. Collecter les stats pour CETTE interface
+    // (si.networkStats renvoie un tableau, même pour une seule interface)
+    const netStatsArray = await si.networkStats(defaultIfaceName);
+    // --- FIN DES MODIFICATIONS 1 ---
 
     // Extraire les données avec fallbacks
     const cpuLoad = safeNumber(cpuData?.currentLoad, 0);
     
     const memTotal = safeNumber(memData?.total, 1); // Éviter division par zéro
-    const memUsed = safeNumber(memData?.used, 0);
+    // Calcul de la RAM "réelle" (Totale - Disponible)
+    const memAvailable = safeNumber(memData?.available, 0); 
+    const memUsed = (memTotal - memAvailable); 
     const ramUsagePercent = memTotal > 0 ? (memUsed / memTotal) * 100 : 0;
     
     const mainFs = Array.isArray(fsData) && fsData.length > 0 ? fsData[0] : { use: 0 };
     const diskUsagePercent = safeNumber(mainFs?.use, 0);
     
-    const mainNet = Array.isArray(netData) && netData.length > 0 ? netData[0] : { rx_sec: 0, tx_sec: 0 };
+    // --- MODIFICATION 2 : Utiliser les stats réseau ---
+    const mainNet = Array.isArray(netStatsArray) && netStatsArray.length > 0 ? netStatsArray[0] : { rx_sec: 0, tx_sec: 0 };
     const networkRxSec = safeNumber(mainNet?.rx_sec, 0);
     const networkTxSec = safeNumber(mainNet?.tx_sec, 0);
+    // --- FIN DES MODIFICATIONS 2 ---
 
     // Construire le payload avec des valeurs arrondies
     const payload = {
