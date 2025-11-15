@@ -1,0 +1,13 @@
+{
+  "name": "registre-agent",
+  "version": "1.0.0",
+  "description": "Agent de monitoring pour Registre Page",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "systeminformation": "^5.22.11"
+  }
+}
