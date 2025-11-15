@@ -11,7 +11,7 @@ try {
   config = JSON.parse(rawConfig);
 } catch (e) {
   console.error('Erreur: Impossible de lire le fichier config.json.', e);
-  console.error('Veuillez exécuter "bash install.sh" pour configurer l'agent.');
+  console.error('Veuillez exécuter "bash install.sh" pour configurer l\'agent.');
   process.exit(1);
 }
 
@@ -22,13 +22,13 @@ if (!COLLECTOR_URL || !SERVER_ID || !API_KEY) {
   process.exit(1);
 }
 
-const POST_URL = `${COLLECTOR_URL}/${SERVER_ID}`;
+const POST_URL = \`\${COLLECTOR_URL}/\${SERVER_ID}\`;
 const COLLECTION_INTERVAL_MS = 10000; // 10 secondes
 
 // --- Logique de collecte ---
 async function collectAndSendMetrics() {
-  console.log(`[${new Date().toISOString()}] Collecte des métriques...`);
-  
+  console.log(\`[\${new Date().toISOString()}] Collecte des métriques...\`);
+
   try {
     const [cpuData, memData, fsData, netData] = await Promise.all([
       si.currentLoad(),
@@ -46,29 +46,29 @@ async function collectAndSendMetrics() {
       network_tx_sec: parseFloat(netData[0].tx_sec.toFixed(2)) || 0
     };
 
-    console.log(`[${new Date().toISOString()}] Envoi vers ${POST_URL}`);
-    
+    console.log(\`[\${new Date().toISOString()}] Envoi vers \${POST_URL}\`);
+
     const response = await fetch(POST_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
+        'Authorization': \`Bearer \${API_KEY}\`
       },
       body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
-      throw new Error(`Erreur HTTP: ${response.status} ${response.statusText}`);
+      throw new Error(\`Erreur HTTP: \${response.status} \${response.statusText}\`);
     }
-    console.log(`[${new Date().toISOString()}] Données envoyées.`);
-    
+    console.log(\`[\${new Date().toISOString()}] Données envoyées.\`);
+
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] Erreur:`, error.message);
+    console.error(\`[\${new Date().toISOString()}] Erreur:\`, error.message);
   }
 }
 
 // --- Démarrage de l'agent ---
 console.log('Agent de monitoring Registre démarré.');
-console.log(`Envoi des données toutes les ${COLLECTION_INTERVAL_MS / 1000} secondes.`);
+console.log(\`Envoi des données toutes les \${COLLECTION_INTERVAL_MS / 1000} secondes.\`);
 collectAndSendMetrics();
 setInterval(collectAndSendMetrics, COLLECTION_INTERVAL_MS);
